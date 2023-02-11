@@ -1,0 +1,5 @@
+.env.prod
+.env.prod.db
+.env.dev
+
+./services/web/project/__pycache__
