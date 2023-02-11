@@ -1,0 +1,63 @@
+###########
+# BUILDER #
+###########
+
+# pull official base image
+FROM python:3.10.7-slim-buster as builder
+
+# set work directory
+WORKDIR /usr/src/app
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc
+
+# lint
+RUN pip install --upgrade pip
+RUN pip install flake8==5.0.4
+COPY . /usr/src/app/
+
+# install python dependencies
+COPY ./requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+
+
+#########
+# FINAL #
+#########
+
+FROM python:3.10.7-slim-buster
+
+RUN mkdir -p home/app
+
+# Creating a NEW non-root user
+RUN addgroup --system app && adduser --system --group app
+
+# Create appropriate directories
+ENV HOME=/home/app
+ENV APP_HOME=/home/app/web
+RUN mkdir $APP_HOME
+WORKDIR $APP_HOME
+
+# Installing Dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends netcat
+COPY --from=builder /usr/src/app/wheels /wheels
+COPY --from=builder /usr/src/app/requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install --no-cache /wheels/*
+
+# Copy files
+COPY . .
+
+# Change permission 
+RUN chown -R app:app $APP_HOME 
+
+# Change user to the newly created user
+USER app
+
+# Run Entry Script
+ENTRYPOINT [ "./entrypoint.prod.sh" ]
