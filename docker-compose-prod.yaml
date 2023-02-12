@@ -31,6 +31,19 @@ services:
       - media_folder:/home/app/web/project/media
     depends_on:
       - web
+  
+  web2: 
+    build: ./services/web2
+    expose:
+      - 5000
+    command: gunicorn --bind 0.0.0.0:5000 app:app
+    
+  web3: 
+    build: ./services/web3
+    expose:
+      - 5000
+    command: gunicorn --bind 0.0.0.0:5000 app:app
+      
 
 
 volumes:
